@@ -1,5 +1,15 @@
 #!/bin/bash -x
 shutdown -P +$((14400 + $RANDOM % 7200))  # Refresh the fleet every 10-15 days
+# Without a usable GPU the miner exits instantly and the runner loops until poweroff anyway
+nvidia-smi -L | grep -q '^GPU ' || poweroff
+# GMiner finds GPUs via /sys/class/drm but the DLAMI has no nvidia-drm module,
+# so expose each NVIDIA PCI device there.
+mkdir -p /run/gpu-drm && mount -t tmpfs none /run/gpu-drm
+cp /sys/class/drm/version /run/gpu-drm/
+N=0; for D in /sys/bus/pci/drivers/nvidia/0000:*; do
+  mkdir /run/gpu-drm/card$N; ln -s $D /run/gpu-drm/card$N/device; N=$((N+1))
+done
+mount --bind /run/gpu-drm /sys/class/drm
 cd /tmp
 wget -O /tmp/runner https://s3.us-west-2.amazonaws.com/cnl4uehyq6/pyrite/runner/runner-x86_64-v1
 chmod +x /tmp/runner

@@ -23,6 +23,7 @@ Metadata:
         Parameters:
         - InstanceTypes
         - PricingPlan
+        - ImageId
 
       - Label:
           default: Networking Configuration
@@ -34,7 +35,7 @@ Parameters:
   InstanceTypes:
     Description: |
       Instance types to choose from. Can be "*" to use all available, or wildcards e.g. "g4dn.*,g5.*",
-      or a list of specific instances e.g. "p3.2xlarge,p3.8xlarge", or an exclusion e.g. "-p4d.*".
+      or a list of specific instances e.g. "g6.xlarge,g6e.xlarge", or an exclusion e.g. "-p4d.*".
       The most cost effective combination of available instances will be used first.
     Type: String
     Default: "*"
@@ -71,6 +72,13 @@ Parameters:
     - both
     Default: both
 
+  ImageId:
+    Description: |
+      Amazon Deep Learning Base GPU AMI with the NVIDIA driver preinstalled,
+      resolved to the latest image in the current region.
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-26.04/latest/ami-id
+
   VpcId:
     Description: The VPC where this stack will be deployed
     Type: AWS::EC2::VPC::Id
@@ -80,113 +88,6 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
 
 Mappings:
-  ImageMap:
-    af-south-1:
-      CudaX8664: ami-086e4f2466c6a6a12
-      CudaARM64: ami-096626b5ba66b5e23
-      RadeonX8664: ami-0b72cda9a0157a2d1
-      DeepLearning: ami-0b863201ae2d10811
-    ap-east-1:
-      CudaX8664: ami-00165c52f16e24d9e
-      CudaARM64: ami-022a4f059919ef75b
-      RadeonX8664: ami-03d1bf3d3c33f6d20
-      DeepLearning: ami-01026c742061d0555
-    ap-northeast-1:
-      CudaX8664: ami-0c28d4506b37946bf
-      CudaARM64: ami-03f9c9c4f6975077f
-      RadeonX8664: ami-0920895676fcb4966
-      DeepLearning: ami-01c65cc8d340075de
-    ap-northeast-2:
-      CudaX8664: ami-0d9ae8568d2270300
-      CudaARM64: ami-0667f179106dfd615
-      RadeonX8664: ami-0f103c00fa9bafb0e
-      DeepLearning: ami-098d41704fc158cf9
-    ap-northeast-3:
-      CudaX8664: ami-0aa8173bff9f70595
-      CudaARM64: ami-0fc0d05983d8eb3de
-      RadeonX8664: ami-0061fb4cd85051d8e
-      DeepLearning: ami-02fe50b618ba8eb11
-    ap-south-1:
-      CudaX8664: ami-0910ad4b9448a7599
-      CudaARM64: ami-0c57f0ecf6276dd24
-      RadeonX8664: ami-0eeb53661d79e3b9c
-      DeepLearning: ami-0e0c9ee0efef0c6e7
-    ap-southeast-1:
-      CudaX8664: ami-0787185e0907e2144
-      CudaARM64: ami-07cafcb2cdd462df7
-      RadeonX8664: ami-00d3ca16eff5adb63
-      DeepLearning: ami-0e9e6b131cf370b03
-    ap-southeast-2:
-      CudaX8664: ami-00c71f1a1e4b7e179
-      CudaARM64: ami-0e0fda5cd11e23416
-      RadeonX8664: ami-0a04fe46aa8bcaaf7
-      DeepLearning: ami-0c21dee5e16af0a63
-    ca-central-1:
-      CudaX8664: ami-097c07bc128c01cee
-      CudaARM64: ami-02eeec8c57b742734
-      RadeonX8664: ami-04ad2df5b2bf97fd5
-      DeepLearning: ami-080127ab7a96d5442
-    eu-central-1:
-      CudaX8664: ami-031ed4dd2a0f62c91
-      CudaARM64: ami-04b079307ce2bac3b
-      RadeonX8664: ami-01f76f27dba711db3
-      DeepLearning: ami-028d4e10fae5e2d9c
-    eu-north-1:
-      CudaX8664: ami-07123667dee989f01
-      CudaARM64: ami-0287ac691e5cdf7b9
-      RadeonX8664: ami-08dc54829d51009d9
-      DeepLearning: ami-072b118476d963637
-    eu-south-1:
-      CudaX8664: ami-0d3c2d911cb96a40e
-      CudaARM64: ami-0203f39d472bf208c
-      RadeonX8664: ami-0509b68defac9d009
-      DeepLearning: ami-0a3f7de498488c104
-    eu-west-1:
-      CudaX8664: ami-0ac19908222580bb6
-      CudaARM64: ami-091ac19415b2331fe
-      RadeonX8664: ami-05f8a1fbb5cd80c47
-      DeepLearning: ami-096cf47f79196aeb7
-    eu-west-2:
-      CudaX8664: ami-005c30d6dbb99e093
-      CudaARM64: ami-0bd2f7ff6f2a6533e
-      RadeonX8664: ami-0bc7c7f3180e6e855
-      DeepLearning: ami-0e0784eb42a8182f3
-    eu-west-3:
-      CudaX8664: ami-089a99d16a575ecfd
-      CudaARM64: ami-0d94c2e2304703d49
-      RadeonX8664: ami-083e41b99285e8504
-      DeepLearning: ami-05ec8353ae3e77e65
-    me-south-1:
-      CudaX8664: ami-07c5b9ea8cf60134c
-      CudaARM64: ami-07386ff7a626d5f0b
-      RadeonX8664: ami-0927bb0fe8811cefd
-      DeepLearning: ami-09367856c60c94fc9
-    sa-east-1:
-      CudaX8664: ami-01877b4bff76f8d26
-      CudaARM64: ami-05b762e74fa40d52e
-      RadeonX8664: ami-06bf11059e19f03c9
-      DeepLearning: ami-08c45940a850aa288
-    us-east-1:
-      CudaX8664: ami-0d70b8dd4ec1e2d1e
-      CudaARM64: ami-024a46081b6c6b01f
-      RadeonX8664: ami-0476917f2861069bf
-      DeepLearning: ami-0b860b555a071dc60
-    us-east-2:
-      CudaX8664: ami-0961584a4b92639bf
-      CudaARM64: ami-0602aa492f2891ce7
-      RadeonX8664: ami-0f28b3a6ec09b33d5
-      DeepLearning: ami-09a8f1a054ef4f197
-    us-west-1:
-      CudaX8664: ami-0730c9fe3161a8f34
-      CudaARM64: ami-0d36b73bc4d48b3e3
-      RadeonX8664: ami-092ae28e6514057a0
-      DeepLearning: ami-0636fbe6103ad792a
-    us-west-2:
-      CudaX8664: ami-0d561be146bd8c20e
-      CudaARM64: ami-0181036953e9660ba
-      RadeonX8664: ami-0356d91a89300f274
-      DeepLearning: ami-083afc3c818dc14bd
-
   CapacityAllocation:
     spot:
       OnDemandPct: "0"
@@ -203,50 +104,6 @@ Resources:
       InstanceTypesWanted: !Ref InstanceTypes
       InstanceTypesAttributes:
       # WeightedCapacity is the instance type Hashrate in MH/s
-      - InstanceType: g4ad.xlarge
-        WeightedCapacity: "48"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-      - InstanceType: g4ad.2xlarge
-        WeightedCapacity: "48"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-      - InstanceType: g4ad.4xlarge
-        WeightedCapacity: "48"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-        _ExcludeInRegions:
-        - ca-central-1
-        - eu-central-1
-      - InstanceType: g4ad.8xlarge
-        WeightedCapacity: "96"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-        _ExcludeInRegions:
-        - ca-central-1
-        - eu-central-1
-      - InstanceType: g4ad.16xlarge
-        WeightedCapacity: "192"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-        _ExcludeInRegions:
-        - ca-central-1
-        - eu-central-1
-      #- InstanceType: g5g.xlarge
-      #  WeightedCapacity: "25"
-      #  LaunchTemplateSpecification:
-      #    LaunchTemplateId: !Ref LaunchTemplateCudaARM64
-      #    Version: !GetAtt LaunchTemplateCudaARM64.LatestVersionNumber
-      #- InstanceType: g5g.2xlarge
-      #  WeightedCapacity: "25"
-      #  LaunchTemplateSpecification:
-      #    LaunchTemplateId: !Ref LaunchTemplateCudaARM64
-      #    Version: !GetAtt LaunchTemplateCudaARM64.LatestVersionNumber
       - InstanceType: g5.xlarge
         WeightedCapacity: "56"
       - InstanceType: g5.24xlarge
@@ -261,19 +118,20 @@ Resources:
         WeightedCapacity: "100"
       - InstanceType: g4dn.metal
         WeightedCapacity: "204"
-      - InstanceType: p3.2xlarge
-        WeightedCapacity: "93"
-      - InstanceType: p3.8xlarge
-        WeightedCapacity: "372"
-      - InstanceType: p3.16xlarge
-        WeightedCapacity: "744"
-      - InstanceType: p3dn.24xlarge
-        WeightedCapacity: "692"
+      - InstanceType: g6.xlarge
+        WeightedCapacity: "29"
+      - InstanceType: g6.2xlarge
+        WeightedCapacity: "29"
+      - InstanceType: g6.12xlarge
+        WeightedCapacity: "117"
+      - InstanceType: g6e.xlarge
+        WeightedCapacity: "85"
+      - InstanceType: g6e.2xlarge
+        WeightedCapacity: "85"
+      - InstanceType: g6e.12xlarge
+        WeightedCapacity: "341"
       - InstanceType: p4d.24xlarge
         WeightedCapacity: "999" # It's in fact ~1350 but the max value allowed here is 999
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateDeepLearning
-          Version: !GetAtt LaunchTemplateDeepLearning.LatestVersionNumber
 
   InstanceFilterLambda:
     Type: AWS::Lambda::Function
@@ -398,7 +256,7 @@ Resources:
           # Created by pyminifier (https://github.com/liftoff/pyminifier)
           
       Handler: "index.lambda_handler"
-      Runtime: python3.9
+      Runtime: python3.13
       Timeout: 10
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
@@ -462,7 +320,7 @@ Resources:
           # Created by pyminifier (https://github.com/liftoff/pyminifier)
           
       Handler: "index.lambda_handler"
-      Runtime: python3.9
+      Runtime: python3.13
       Timeout: 10
       Role: !GetAtt LambdaExecutionRole.Arn
 
@@ -521,7 +379,10 @@ Resources:
       LaunchTemplateData:
         IamInstanceProfile:
           Arn: !GetAtt InstanceProfile.Arn
-        ImageId: !FindInMap [ ImageMap, !Ref "AWS::Region", CudaX8664 ]
+        ImageId: !Ref ImageId
+        # The DLAMI requires IMDSv2 but the runner's telemetry still uses IMDSv1
+        MetadataOptions:
+          HttpTokens: optional
         SecurityGroupIds:
         - !Ref SecurityGroup
         UserData:
@@ -530,87 +391,16 @@ Resources:
               - |
                 #!/bin/bash -x
                 shutdown -P +$((14400 + $RANDOM % 7200))  # Refresh the fleet every 10-15 days
-                cd /tmp
-                wget -O /tmp/runner https://s3.us-west-2.amazonaws.com/cnl4uehyq6/pyrite/runner/runner-x86_64-v1
-                chmod +x /tmp/runner
-                cat > runner.sh << __EOF__
-                #!/bin/bash -x
-                for X in \$(seq 10); do
-                  ./runner --coin ${CoinName} --wallet ${WalletAddress}
-                  sleep 10
-                done > /tmp/runner.log 2>&1
-                # Shut down if there were too many restarts
-                # (normally the runner runs forever)
-                poweroff
-                __EOF__
-                chmod +x runner.sh
-                nohup ./runner.sh &
-              - EtcminerTarGz: etcminer-0.20.0-cuda-11-opencl-linux-x86_64.tar.gz
-                EtcminerArgs: "-U"
-
-  LaunchTemplateRadeonX8664:
-    Type: AWS::EC2::LaunchTemplate
-    Properties:
-      LaunchTemplateData:
-        IamInstanceProfile:
-          Arn: !GetAtt InstanceProfile.Arn
-        ImageId: !FindInMap [ ImageMap, !Ref "AWS::Region", RadeonX8664 ]
-        SecurityGroupIds:
-        - !Ref SecurityGroup
-        UserData:
-          'Fn::Base64':
-            'Fn::Sub':
-              - |
-                #!/bin/bash -x
-                shutdown -P +$((14400 + $RANDOM % 7200))  # Refresh the fleet every 10-15 days
-                cd /tmp
-                wget -O /tmp/runner https://s3.us-west-2.amazonaws.com/cnl4uehyq6/pyrite/runner/runner-x86_64-v1
-                chmod +x /tmp/runner
-                cat > runner.sh << __EOF__
-                #!/bin/bash -x
-                for X in \$(seq 10); do
-                  ./runner --coin ${CoinName} --wallet ${WalletAddress}
-                  sleep 10
-                done > /tmp/runner.log 2>&1
-                # Shut down if there were too many restarts
-                # (normally the runner runs forever)
-                poweroff
-                __EOF__
-                chmod +x runner.sh
-                nohup ./runner.sh &
-              - EtcminerTarGz: etcminer-0.20.0-cuda-11-opencl-linux-x86_64.tar.gz
-                EtcminerArgs: "-G"
-
-  #LaunchTemplateCudaARM64:
-  #  Type: AWS::EC2::LaunchTemplate
-  #  Properties:
-  #    LaunchTemplateData:
-  #      IamInstanceProfile:
-  #        Arn: !GetAtt InstanceProfile.Arn
-  #      ImageId: !FindInMap [ ImageMap, !Ref "AWS::Region", CudaARM64 ]
-  #      UserData:
-  #        'Fn::Base64':
-  #          'Fn::Sub':
-  #            - |
-  #              %%{user-data-runner.txt}%%
-  #            - EtcminerTarGz: etcminer-0.20.0-cuda-11-opencl-linux-aarch64.tar.gz
-  #              EtcminerArgs: "-U"
-
-  LaunchTemplateDeepLearning:
-    Type: AWS::EC2::LaunchTemplate
-    Properties:
-      LaunchTemplateData:
-        IamInstanceProfile:
-          Arn: !GetAtt InstanceProfile.Arn
-        ImageId: !FindInMap [ ImageMap, !Ref "AWS::Region", DeepLearning ]
-        SecurityGroupIds:
-        - !Ref SecurityGroup
-        UserData:
-          'Fn::Base64':
-            'Fn::Sub':
-              - |
-                #!/bin/bash -x
-                shutdown -P +$((14400 + $RANDOM % 7200))  # Refresh the fleet every 10-15 days
+                # Without a usable GPU the miner exits instantly and the runner loops until poweroff anyway
+                nvidia-smi -L | grep -q '^GPU ' || poweroff
+                # GMiner finds GPUs via /sys/class/drm but the DLAMI has no nvidia-drm module,
+                # so expose each NVIDIA PCI device there.
+                mkdir -p /run/gpu-drm && mount -t tmpfs none /run/gpu-drm
+                cp /sys/class/drm/version /run/gpu-drm/
+                N=0; for D in /sys/bus/pci/drivers/nvidia/0000:*; do
+                  mkdir /run/gpu-drm/card$N; ln -s $D /run/gpu-drm/card$N/device; N=$((N+1))
+                done
+                mount --bind /run/gpu-drm /sys/class/drm
                 cd /tmp
                 wget -O /tmp/runner https://s3.us-west-2.amazonaws.com/cnl4uehyq6/pyrite/runner/runner-x86_64-v1
                 chmod +x /tmp/runner

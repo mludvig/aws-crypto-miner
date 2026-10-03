@@ -3,7 +3,7 @@
 Q_VALUE=64
 
 if [ "$1" == "" ]; then
-  echo "Usage: $0 {g4dn/g5/p3/p3dn/p4d} [vCPU]" >&2
+  echo "Usage: $0 {g4dn/g5/g6/g6e/p4d} [vCPU]" >&2
   echo ""
   echo -e "Unless \e[1mvCPU\e[0m parameter is used we will request increase to \e[1m${Q_VALUE}\e[0m vCPU"
   echo ""

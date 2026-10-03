@@ -18,6 +18,7 @@ Metadata:
         Parameters:
         - InstanceTypes
         - PricingPlan
+        - ImageId
 
       - Label:
           default: Networking Configuration
@@ -29,7 +30,7 @@ Parameters:
   InstanceTypes:
     Description: |
       Instance types to choose from. Can be "*" to use all available, or wildcards e.g. "g4dn.*,g5.*",
-      or a list of specific instances e.g. "p3.2xlarge,p3.8xlarge", or an exclusion e.g. "-p4d.*".
+      or a list of specific instances e.g. "g6.xlarge,g6e.xlarge", or an exclusion e.g. "-p4d.*".
       The most cost effective combination of available instances will be used first.
     Type: String
     Default: "*"
@@ -66,6 +67,13 @@ Parameters:
     - both
     Default: both
 
+  ImageId:
+    Description: |
+      Amazon Deep Learning Base GPU AMI with the NVIDIA driver preinstalled,
+      resolved to the latest image in the current region.
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-26.04/latest/ami-id
+
   VpcId:
     Description: The VPC where this stack will be deployed
     Type: AWS::EC2::VPC::Id
@@ -75,9 +83,6 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
 
 Mappings:
-  ImageMap:
-    %%{ami-ids.yml}%%
-
   CapacityAllocation:
     spot:
       OnDemandPct: "0"
@@ -94,50 +99,6 @@ Resources:
       InstanceTypesWanted: !Ref InstanceTypes
       InstanceTypesAttributes:
       # WeightedCapacity is the instance type Hashrate in MH/s
-      - InstanceType: g4ad.xlarge
-        WeightedCapacity: "48"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-      - InstanceType: g4ad.2xlarge
-        WeightedCapacity: "48"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-      - InstanceType: g4ad.4xlarge
-        WeightedCapacity: "48"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-        _ExcludeInRegions:
-        - ca-central-1
-        - eu-central-1
-      - InstanceType: g4ad.8xlarge
-        WeightedCapacity: "96"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-        _ExcludeInRegions:
-        - ca-central-1
-        - eu-central-1
-      - InstanceType: g4ad.16xlarge
-        WeightedCapacity: "192"
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateRadeonX8664
-          Version: !GetAtt LaunchTemplateRadeonX8664.LatestVersionNumber
-        _ExcludeInRegions:
-        - ca-central-1
-        - eu-central-1
-      #- InstanceType: g5g.xlarge
-      #  WeightedCapacity: "25"
-      #  LaunchTemplateSpecification:
-      #    LaunchTemplateId: !Ref LaunchTemplateCudaARM64
-      #    Version: !GetAtt LaunchTemplateCudaARM64.LatestVersionNumber
-      #- InstanceType: g5g.2xlarge
-      #  WeightedCapacity: "25"
-      #  LaunchTemplateSpecification:
-      #    LaunchTemplateId: !Ref LaunchTemplateCudaARM64
-      #    Version: !GetAtt LaunchTemplateCudaARM64.LatestVersionNumber
       - InstanceType: g5.xlarge
         WeightedCapacity: "56"
       - InstanceType: g5.24xlarge
@@ -152,19 +113,20 @@ Resources:
         WeightedCapacity: "100"
       - InstanceType: g4dn.metal
         WeightedCapacity: "204"
-      - InstanceType: p3.2xlarge
-        WeightedCapacity: "93"
-      - InstanceType: p3.8xlarge
-        WeightedCapacity: "372"
-      - InstanceType: p3.16xlarge
-        WeightedCapacity: "744"
-      - InstanceType: p3dn.24xlarge
-        WeightedCapacity: "692"
+      - InstanceType: g6.xlarge
+        WeightedCapacity: "29"
+      - InstanceType: g6.2xlarge
+        WeightedCapacity: "29"
+      - InstanceType: g6.12xlarge
+        WeightedCapacity: "117"
+      - InstanceType: g6e.xlarge
+        WeightedCapacity: "85"
+      - InstanceType: g6e.2xlarge
+        WeightedCapacity: "85"
+      - InstanceType: g6e.12xlarge
+        WeightedCapacity: "341"
       - InstanceType: p4d.24xlarge
         WeightedCapacity: "999" # It's in fact ~1350 but the max value allowed here is 999
-        LaunchTemplateSpecification:
-          LaunchTemplateId: !Ref LaunchTemplateDeepLearning
-          Version: !GetAtt LaunchTemplateDeepLearning.LatestVersionNumber
 
   InstanceFilterLambda:
     Type: AWS::Lambda::Function
@@ -174,7 +136,7 @@ Resources:
         ZipFile: |
           %%{lambdas/instance-filter.min.py}%%
       Handler: "index.lambda_handler"
-      Runtime: python3.9
+      Runtime: python3.13
       Timeout: 10
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
@@ -199,7 +161,7 @@ Resources:
         ZipFile: |
           %%{lambdas/asg-updater.min.py}%%
       Handler: "index.lambda_handler"
-      Runtime: python3.9
+      Runtime: python3.13
       Timeout: 10
       Role: !GetAtt LambdaExecutionRole.Arn
 
@@ -258,56 +220,10 @@ Resources:
       LaunchTemplateData:
         IamInstanceProfile:
           Arn: !GetAtt InstanceProfile.Arn
-        ImageId: !FindInMap [ ImageMap, !Ref "AWS::Region", CudaX8664 ]
-        SecurityGroupIds:
-        - !Ref SecurityGroup
-        UserData:
-          'Fn::Base64':
-            'Fn::Sub':
-              - |
-                %%{user-data-runner.txt}%%
-              - EtcminerTarGz: etcminer-0.20.0-cuda-11-opencl-linux-x86_64.tar.gz
-                EtcminerArgs: "-U"
-
-  LaunchTemplateRadeonX8664:
-    Type: AWS::EC2::LaunchTemplate
-    Properties:
-      LaunchTemplateData:
-        IamInstanceProfile:
-          Arn: !GetAtt InstanceProfile.Arn
-        ImageId: !FindInMap [ ImageMap, !Ref "AWS::Region", RadeonX8664 ]
-        SecurityGroupIds:
-        - !Ref SecurityGroup
-        UserData:
-          'Fn::Base64':
-            'Fn::Sub':
-              - |
-                %%{user-data-runner.txt}%%
-              - EtcminerTarGz: etcminer-0.20.0-cuda-11-opencl-linux-x86_64.tar.gz
-                EtcminerArgs: "-G"
-
-  #LaunchTemplateCudaARM64:
-  #  Type: AWS::EC2::LaunchTemplate
-  #  Properties:
-  #    LaunchTemplateData:
-  #      IamInstanceProfile:
-  #        Arn: !GetAtt InstanceProfile.Arn
-  #      ImageId: !FindInMap [ ImageMap, !Ref "AWS::Region", CudaARM64 ]
-  #      UserData:
-  #        'Fn::Base64':
-  #          'Fn::Sub':
-  #            - |
-  #              %%{user-data-runner.txt}%%
-  #            - EtcminerTarGz: etcminer-0.20.0-cuda-11-opencl-linux-aarch64.tar.gz
-  #              EtcminerArgs: "-U"
-
-  LaunchTemplateDeepLearning:
-    Type: AWS::EC2::LaunchTemplate
-    Properties:
-      LaunchTemplateData:
-        IamInstanceProfile:
-          Arn: !GetAtt InstanceProfile.Arn
-        ImageId: !FindInMap [ ImageMap, !Ref "AWS::Region", DeepLearning ]
+        ImageId: !Ref ImageId
+        # The DLAMI requires IMDSv2 but the runner's telemetry still uses IMDSv1
+        MetadataOptions:
+          HttpTokens: optional
         SecurityGroupIds:
         - !Ref SecurityGroup
         UserData:
